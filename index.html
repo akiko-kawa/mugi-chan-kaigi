@@ -33,19 +33,36 @@
     }
 
     .upload-box {
-      margin-top: 40px;
+      margin-top: 30px;
       padding: 25px 18px;
       background: white;
       border-radius: 18px;
     }
 
-    input {
+    label {
+      display: block;
+      margin-top: 20px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    select, input {
       width: 100%;
-      margin: 20px 0;
+      margin-top: 8px;
+      padding: 12px;
+      border: 1px solid #ddd2c6;
+      border-radius: 10px;
+      font-size: 16px;
+      background: white;
+    }
+
+    input[type="file"] {
+      padding: 8px;
     }
 
     button {
       width: 100%;
+      margin-top: 22px;
       padding: 15px;
       border: none;
       border-radius: 12px;
@@ -55,13 +72,19 @@
       cursor: pointer;
     }
 
+    button:disabled {
+      opacity: 0.5;
+    }
+
     #status {
       margin-top: 20px;
       font-size: 14px;
+      overflow-wrap: anywhere;
     }
 
     #preview {
       max-width: 100%;
+      max-height: 300px;
       margin-top: 15px;
       border-radius: 12px;
     }
@@ -73,9 +96,21 @@
     <p class="sub">今日の会議資料を提出してください。</p>
 
     <div class="upload-box">
-      <p>📷 写真を選んでね</p>
+      <label for="cat">🐈 だれの写真？</label>
+      <select id="cat">
+        <option value="むぎ">むぎ</option>
+        <option value="なぎ">なぎ</option>
+        <option value="やえ">やえ</option>
+      </select>
+
+      <label for="photoName">📌 写真の名前</label>
+      <input type="text" id="photoName" placeholder="例：お昼寝中">
+
+      <label for="photo">📷 写真を選んでね</label>
       <input type="file" id="photo" accept="image/*">
+
       <img id="preview" hidden>
+
       <button id="upload">写真をアップロード</button>
       <p id="status">写真を待っています。</p>
     </div>
@@ -89,6 +124,8 @@
     const preview = document.getElementById("preview");
     const status = document.getElementById("status");
     const upload = document.getElementById("upload");
+    const cat = document.getElementById("cat");
+    const photoName = document.getElementById("photoName");
 
     photo.addEventListener("change", () => {
       const file = photo.files[0];
@@ -99,6 +136,29 @@
       status.textContent = "写真を確認しました。";
     });
 
+    async function resizePhoto(file) {
+      const image = await createImageBitmap(file);
+
+      const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+      const width = Math.round(image.width * scale);
+      const height = Math.round(image.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0, width, height);
+      image.close();
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error("画像の変換に失敗しました"));
+        }, "image/jpeg", 0.85);
+      });
+    }
+
     upload.addEventListener("click", async () => {
       const file = photo.files[0];
 
@@ -108,11 +168,13 @@
       }
 
       upload.disabled = true;
-      status.textContent = "アップロード中です…";
+      status.textContent = "写真を小さくしています…";
 
       try {
+        const resizedFile = await resizePhoto(file);
+
         const data = new FormData();
-        data.append("file", file);
+        data.append("file", resizedFile, "photo.jpg");
         data.append("upload_preset", UPLOAD_PRESET);
 
         const response = await fetch(
@@ -126,7 +188,12 @@
           throw new Error(result.error?.message || "アップロードに失敗しました");
         }
 
-        status.textContent = "アップロードできました！";
+        const name = photoName.value.trim() ||
+          `${cat.value}_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+
+        status.textContent =
+          `アップロードできました！\n猫：${cat.value}\n写真名：${name}`;
+
       } catch (error) {
         status.textContent = "エラー：" + error.message;
       } finally {
