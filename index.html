@@ -1,4 +1,165 @@
 
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>むぎちゃん会議</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 30px 20px;
+      background: #f5f1e9;
+      color: #51483f;
+      font-family: sans-serif;
+    }
+
+    .container {
+      max-width: 440px;
+      margin: auto;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 35px;
+      font-size: 27px;
+    }
+
+    .sub {
+      color: #91877b;
+      font-size: 13px;
+    }
+
+    .upload-box {
+      margin-top: 30px;
+      padding: 25px 18px;
+      background: white;
+      border-radius: 18px;
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    select, input {
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px;
+      border: 1px solid #ddd2c6;
+      border-radius: 10px;
+      font-size: 16px;
+      background: white;
+    }
+
+    input[type="file"] {
+      padding: 8px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 22px;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      background: #9b8068;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    #preview {
+      max-width: 100%;
+      max-height: 300px;
+      margin-top: 15px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>むぎちゃん会議</h1>
+    <p class="sub">今日の会議資料を提出してください。</p>
+
+    <div class="upload-box">
+      <label for="cat">🐈 だれの写真？</label>
+      <select id="cat">
+        <option value="むぎ">むぎ</option>
+        <option value="なぎ">なぎ</option>
+        <option value="やえ">やえ</option>
+      </select>
+
+      <label for="photoName">📌 写真の名前</label>
+      <input type="text" id="photoName" placeholder="例：お昼寝中">
+
+      <label for="photo">📷 写真を選んでね</label>
+      <input type="file" id="photo" accept="image/*">
+
+      <img id="preview" hidden>
+
+      <button id="upload">写真をアップロード</button>
+      <p id="status">写真を待っています。</p>
+    </div>
+  </div>
+
+  <script>
+    const CLOUD_NAME = "p5ftkcgl";
+    const UPLOAD_PRESET = "mugi_upload";
+
+    const photo = document.getElementById("photo");
+    const preview = document.getElementById("preview");
+    const status = document.getElementById("status");
+    const upload = document.getElementById("upload");
+    const cat = document.getElementById("cat");
+    const photoName = document.getElementById("photoName");
+
+    photo.addEventListener("change", () => {
+      const file = photo.files[0];
+      if (!file) return;
+
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+      status.textContent = "写真を確認しました。";
+    });
+
+    async function resizePhoto(file) {
+      const image = await createImageBitmap(file);
+
+      const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
+      const width = Math.round(image.width * scale);
+      const height = Math.round(image.height * scale);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext("2d");
+      context.drawImage(image, 0, 0, width, height);
+      image.close();
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(blob => {
+          if (blob) resolve(blob);
+          else reject(new Error("画像の変換に失敗しました"));
+        }, "image/jpeg", 0.85);
+      });
+    }
+
+
 upload.addEventListener("click", async () => {
   const file = photo.files[0];
 
@@ -44,3 +205,7 @@ upload.addEventListener("click", async () => {
     upload.disabled = false;
   }
 });
+  </script>
+</body>
+</html>
+
