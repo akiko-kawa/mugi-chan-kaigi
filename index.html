@@ -173,9 +173,15 @@
       try {
         const resizedFile = await resizePhoto(file);
 
-        const data = new FormData();
-        data.append("file", resizedFile, "photo.jpg");
-        data.append("upload_preset", UPLOAD_PRESET);
+      const name = photoName.value.trim() ||
+  `${cat.value}_${new Date().toISOString().replace(/[:.]/g, "-")}`;
+
+const safeName = name.replace(/[\/\\#?%&]/g, "_");
+
+const data = new FormData();
+data.append("file", resizedFile, "photo.jpg");
+data.append("upload_preset", UPLOAD_PRESET);
+data.append("public_id", `${cat.value}/${safeName}`);
 
         const response = await fetch(
           `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
